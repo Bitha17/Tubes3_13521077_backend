@@ -156,54 +156,49 @@ function getHistoryById(id) {
     });
 }
 
-function getRecentHistory() {
-    return new Promise((resolve, reject) => {
-        // Query to get the 10 most recent history IDs
-        const query = `SELECT id FROM history ORDER BY created_at DESC LIMIT 10`;
-    
-        // Run the query
-        connection.query(query, (error, historyResults) => {
-            if (error) {
-            reject(error);
-            } else {
-            // Construct an array of promises to get the q_and_a records for each history ID
-            const qAndAPromises = historyResults.map((historyResult) => {
-                const historyId = historyResult.id;
-                // Query to get the q_and_a records for the current history ID
-                const qAndAQuery = `SELECT question_text, answer_text FROM q_and_a WHERE history_id = ?`;
-    
-                // Run the query with parameter historyId
-                return new Promise((resolve, reject) => {
-                connection.query(qAndAQuery, [historyId], (error, qAndAResults) => {
-                    if (error) {
-                    reject(error);
-                    } else {
-                    const chat = [];
-                    for (let i = 0; i < qAndAResults.length; i++) {
-                        chat.push({
-                            q: qAndAResults[i].question_text,
-                            a: qAndAResults[i].answer_text
-                        });
-                    }
-                    resolve({ id: historyId, chat });
-                    }
-                });
-                });
-            });
-    
-            // Wait for all the q_and_a promises to resolve
-            Promise.all(qAndAPromises)
-                .then((historyChat) => {
-                resolve(historyChat);
-                })
-                .catch((error) => {
-                reject(error);
-                });
-            }
-        });
-    });
-}
+async function getRecentHistory() {
+    try {
+      const query = `
+        SELECT history.id, q_and_a.question_text, q_and_a.answer_text
+        FROM history
+        JOIN q_and_a ON history.id = q_and_a.history_id
+        WHERE history.id IN (
+          SELECT id
+          FROM history
+          ORDER BY created_at DESC
+          LIMIT 10
+        )
+        ORDER BY history.id, q_and_a.created_at
+      `;
   
+      const historyResults = await connection.query(query);
+  
+      const historyChat = [];
+      let currentHistoryId;
+      let currentChat;
+  
+      for (const row of historyResults) {
+        if (row.id !== currentHistoryId) {
+          if (currentChat) {
+            historyChat.push({ id: currentHistoryId, chat: currentChat });
+          }
+          currentHistoryId = row.id;
+          currentChat = [];
+        }
+  
+        currentChat.push({ q: row.question_text, a: row.answer_text });
+      }
+  
+      if (currentChat) {
+        historyChat.push({ id: currentHistoryId, chat: currentChat });
+      }
+  
+      return historyChat;
+    } catch (error) {
+      throw error;
+    }
+  }
+    
   
 
 
