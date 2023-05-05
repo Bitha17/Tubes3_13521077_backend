@@ -2,10 +2,10 @@ const mysql = require('mysql');
 
 // Membuat koneksi ke database
 const connection = mysql.createConnection({
-    host: 'sql12.freemysqlhosting.net',
-    user: 'sql12615749',
-    password: 'FeysH6W1pm',
-    database: 'sql12615749'
+    host: 'mysql-124824-0.cloudclusters.net',
+    user: 'admin',
+    password: 'nW6vF0D3',
+    database: 'gptkw'
 });
 
 // Function to add a new question and answer to the database
